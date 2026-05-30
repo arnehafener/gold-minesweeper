@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gold Minesweeper</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>⛏ Gold Minesweeper</h1>
+
+<div class="layout">
+
+  <!-- ══════════════════════════════
+       LEFT SIDEBAR
+  ══════════════════════════════ -->
+  <div class="sidebar">
+
+    <!-- Guthaben + Nuggets -->
+    <div class="card">
+      <span class="card-label">Guthaben</span>
+      <div class="balance-value" id="balanceEl">1.000</div>
+      <div class="nugget-sidebar-row">
+        <span class="nugget-sidebar-icon">🪙</span>
+        <span class="nugget-sidebar-count" id="sidebarNuggets">5</span>
+        <span class="nugget-sidebar-label">Nuggets</span>
+        <button class="help-btn tip-right" data-tip="Nuggets sammelst du durch Goldfelder. Damit kaufst du Upgrades &amp; Events – oder verkaufst sie im Markt wenn der Preis hoch ist.">?</button>
+      </div>
+    </div>
+
+    <!-- Minen-Slider -->
+    <div class="card">
+      <span class="card-label">
+        Minen
+        <button class="help-btn" data-tip="Mehr Minen = mehr Risiko, aber der Multiplikator-Schritt pro Goldfeld steigt stark. Bei 5 Minen: +0.50× / Gold. Bei 12 Minen: +1.85× / Gold.">?</button>
+      </span>
+      <div class="mine-header">
+        <span class="mine-count-big" id="mineCountEl">5</span>
+        <span class="mine-step-hint" id="mineStepEl">+0.50× / Gold</span>
+      </div>
+      <input type="range" class="mine-range" id="mineSlider" min="1" max="16" value="5">
+      <div class="risk-row" id="riskRow"></div>
+      <div class="risk-label" id="riskLabel">Normal</div>
+      <div class="mine-dist" id="mineDistEl">💣×5 · 🪙×8 · ⬜×12</div>
+    </div>
+
+    <!-- Upgrades -->
+    <div class="card">
+      <span class="card-label">
+        Upgrades
+        <button class="help-btn" data-tip="Upgrades kosten Nuggets und gelten nur für die nächste Runde. Klicke zum An/Abwählen – Nuggets werden bei Abwahl erstattet.">?</button>
+        <span class="nugget-currency">🪙 Nuggets</span>
+      </span>
+      <div class="upgrades-grid" id="upgradesWrap"></div>
+    </div>
+
+    <!-- Einsatz -->
+    <div class="card">
+      <span class="card-label">
+        Einsatz
+        <button class="help-btn" data-tip="Der Betrag den du pro Runde riskierst. Bei einer Mine verlierst du ihn. Bei Cash Out bekommst du: Einsatz × Multiplikator.">?</button>
+      </span>
+      <input class="bet-input" type="number" id="betInput" value="100" min="1">
+      <div class="quick-bets">
+        <div class="qb" onclick="mulBet(0.5)">½×</div>
+        <div class="qb" onclick="mulBet(2)">2×</div>
+        <div class="qb" onclick="maxBet()">Max</div>
+        <div class="qb" onclick="setBet(100)">100</div>
+      </div>
+    </div>
+
+    <button class="btn btn-start" id="btnStart" onclick="startRound()">▶ Runde starten</button>
+
+    <div class="streak-display" id="streakDisplay">
+      🔥 <span id="streakCount">0</span>er Streak
+      <button class="help-btn tip-right" data-tip="Jede Runde die du mit Cash Out beendest erhöht den Streak. Ab 2: +5%, ab 3: +10%, ab 4+: +15% auf den nächsten Cash Out.">?</button>
+      <span class="streak-bonus" id="streakBonus"></span>
+    </div>
+
+    <div class="cashout-row">
+      <button class="btn btn-cashout" id="btnCashout" onclick="cashOut()" disabled>💰 Cash Out</button>
+      <button class="help-btn tip-right" data-tip="Nimm jetzt deinen Gewinn. Auszahlung = Einsatz × Multiplikator × Streak-Bonus. Je mehr Goldfelder du aufdeckst, desto höher der Multiplikator.">?</button>
+    </div>
+
+    <div class="card">
+      <span class="card-label">Letzte Runden</span>
+      <div class="log-list" id="logList">
+        <div class="log-empty">Noch keine Runden gespielt</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════
+       CENTER
+  ══════════════════════════════ -->
+  <div class="center">
+
+    <!-- Milestone Path -->
+    <div class="milestone-track card">
+      <div class="ms-header">
+        <span class="card-label">Fortschritts-Pfad</span>
+        <span class="ms-level-name" id="msLevelName">Einsteiger</span>
+      </div>
+      <div class="ms-path" id="msPath"></div>
+      <div class="ms-info" id="msInfo"></div>
+    </div>
+
+    <!-- Multiplier + Win -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-label">
+          Multiplikator
+          <button class="help-btn" data-tip="Steigt mit jedem aufgedeckten Goldfeld. Mehr Minen = größerer Sprung pro Gold. Cashout × dieser Wert = dein Gewinn.">?</button>
+        </div>
+        <div class="stat-value mult" id="multEl">1.00×</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">
+          Möglicher Gewinn
+          <button class="help-btn" data-tip="Was du bei sofortigem Cash Out erhältst: Einsatz × Multiplikator, inklusive Streak-Bonus und aktiver Event-Boni.">?</button>
+        </div>
+        <div class="stat-value win-val" id="winEl">—</div>
+      </div>
+    </div>
+
+    <!-- Info bar -->
+    <div class="info-bar">
+      <span>💣 Minen: <strong id="iBombs">5</strong></span>
+      <span>🪙 Gold: <strong id="iGold">8</strong></span>
+      <span>⬜ Leer: <strong id="iEmpty">12</strong></span>
+      <button class="help-btn" data-tip="Mine-Wahrscheinlichkeit: Jedes verdeckte Feld zeigt die aktuelle statistische Chance auf eine Mine. Berechnet als: verbleibende Minen ÷ verbleibende Felder.">?</button>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid" id="grid"></div>
+
+    <div class="status" id="statusEl">Setze deinen Einsatz und starte eine Runde!</div>
+
+  </div>
+
+  <!-- ══════════════════════════════
+       RIGHT PANEL
+  ══════════════════════════════ -->
+  <div class="shop-panel">
+
+    <div class="tab-bar">
+      <button class="tab-btn" id="tab-market">Markt</button>
+      <button class="tab-btn" id="tab-events">Events</button>
+      <button class="tab-btn" id="tab-stats">Stats</button>
+      <button class="tab-btn" id="tab-achievements">Erfolge</button>
+    </div>
+
+    <!-- ── Markt ── -->
+    <div id="panel-market" style="display:flex;flex-direction:column;gap:10px">
+
+      <div class="card">
+        <div class="shop-title-row">
+          <span class="shop-title">⛏ Goldmarkt</span>
+          <span class="gold-rush-badge" id="goldRushBadge">🌟 Rush!</span>
+        </div>
+
+        <div class="price-section">
+          <span class="card-label">
+            Marktpreis
+            <button class="help-btn tip-left" data-tip="Preis pro Nugget in Euro. Aktualisiert sich alle 2 Minuten zufällig. Verkaufe bei hohem Preis, spare Nuggets bei niedrigem.">?</button>
+          </span>
+          <div class="price-display-row">
+            <span class="price-value" id="priceEl">—</span>
+            <span class="price-unit">€/Nugget</span>
+            <span class="price-trend" id="trendEl"></span>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <svg class="chart-svg" id="priceChart" viewBox="0 0 190 50" preserveAspectRatio="none"></svg>
+        </div>
+
+        <div class="news-ticker" id="newsTicker"></div>
+
+        <div class="timer-row">
+          <span>Nächste Änderung</span>
+          <span class="timer-val" id="timerEl">2:00</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="card-label">Nuggets verkaufen</span>
+        <div class="nugget-sell-row">
+          <span class="nugget-sell-icon">🪙</span>
+          <span class="nugget-sell-count" id="invCount">5</span>
+          <span class="nugget-sell-label">verfügbar</span>
+        </div>
+        <div class="sell-row">
+          <input type="number" class="sell-input" id="sellAmt" min="1" value="1">
+          <button class="btn-sell" id="btnSell">Verkaufen</button>
+        </div>
+        <button class="btn-sell-all" id="btnSellAll">Alle verkaufen</button>
+        <div class="sell-preview" id="sellPreview">Keine Nuggets</div>
+        <div class="sell-status-msg" id="sellStatus"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Events ── -->
+    <div id="panel-events" style="display:none">
+      <div class="card">
+        <span class="card-label">
+          Runden-Events
+          <button class="help-btn tip-left" data-tip="Events modifizieren die nächste Runde. Sie kosten Nuggets und können nur vor dem Start gewählt werden. Nach jeder Runde gibt es neue Karten.">?</button>
+          <span class="nugget-currency">🪙 Nuggets</span>
+        </span>
+        <p class="event-hint">Wähle Karten vor dem Start. Neue Karten nach jeder Runde.</p>
+        <div class="event-cards-col" id="eventCardsWrap"></div>
+      </div>
+    </div>
+
+    <!-- ── Stats ── -->
+    <div id="panel-stats" style="display:none">
+      <div class="card">
+        <span class="card-label" style="margin-bottom:10px">Deine Statistiken</span>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-item-label">Runden</div>
+            <div class="stat-item-value" id="sRounds">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-label">Win-Rate</div>
+            <div class="stat-item-value" id="sWinRate">0%</div>
+          </div>
+          <div class="stat-item wide">
+            <div class="stat-item-label">Gesamtprofit</div>
+            <div class="stat-item-value" id="sProfit">€0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-label">Größter Gewinn</div>
+            <div class="stat-item-value" id="sBigWin">€0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-label">Bester Mult.</div>
+            <div class="stat-item-value" id="sBestMult">0×</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-label">Nuggets gefunden</div>
+            <div class="stat-item-value" id="sNuggets">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-label">Nuggets verkauft</div>
+            <div class="stat-item-value" id="sSold">0</div>
+          </div>
+          <div class="stat-item wide">
+            <div class="stat-item-label">Markterlös</div>
+            <div class="stat-item-value" id="sMarket">€0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Erfolge ── -->
+    <div id="panel-achievements" style="display:none">
+      <div class="card">
+        <span class="card-label" style="margin-bottom:10px">Erfolge</span>
+        <div class="achievements-list" id="achievementsWrap"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
