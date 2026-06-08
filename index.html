@@ -19,6 +19,7 @@
     <span class="user-bar-name">👤 <span id="userBarName"></span></span>
     <button class="btn-auth-logout" onclick="doSignOut()">Abmelden</button>
   </div>
+  <button class="btn-help-tutorial" id="btnTutorial" title="Tutorial anzeigen">?</button>
 </div>
 
 <div class="layout">
@@ -135,6 +136,8 @@
         <div class="stat-value win-val" id="winEl">—</div>
       </div>
     </div>
+
+    <div id="nextGoldHint" style="display:none"></div>
 
     <!-- Info bar -->
     <div class="pending-nuggets" id="pendingNuggets" style="display:none">
@@ -355,6 +358,20 @@
       <button class="btn-auth-submit" onclick="signUp()">Account erstellen</button>
     </div>
     <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
+
+<!-- Tutorial Modal -->
+<div id="tutorialOverlay" class="tutorial-overlay" style="display:none">
+  <div class="tutorial-modal">
+    <div class="tutorial-steps-indicator" id="tutStepDots"></div>
+    <div class="tutorial-icon" id="tutIcon"></div>
+    <div class="tutorial-title" id="tutTitle"></div>
+    <div class="tutorial-text" id="tutText"></div>
+    <div class="tutorial-actions">
+      <button class="btn-tut-skip" id="tutSkip">Überspringen</button>
+      <button class="btn-tut-next" id="tutNext">Weiter →</button>
+    </div>
   </div>
 </div>
 

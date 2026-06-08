@@ -9,6 +9,7 @@ const TOTAL  = 25;
 const N_GOLD = 8;
 
 function calcMultStep(m) { return (m / (TOTAL - m)) * 2; }
+function calcMultStepProgressive(m) { return calcMultStep(m) * (1 + roundNuggets * 0.20); }
 
 const RISK = [
   { label: 'Niedrig', color: '#4caf50' },
@@ -37,7 +38,17 @@ const UPGRADES = [
   { id: 'joker',     name: 'Joker',         icon: '🃏', cost: 18, desc: '1 Mine übersteht – Runde läuft weiter' },
 ];
 // Runden die ein Upgrade nach Benutzung gesperrt bleibt
-const UPGRADE_COOLDOWNS = { insurance: 2, charm: 3, joker: 4 };
+const UPGRADE_COOLDOWNS = { insurance: 2, charm: 3, joker: 10 };
+
+const TUTORIAL_KEY = 'goldMS_tutorialSeen';
+const TUTORIAL_STEPS = [
+  { icon: '🪙', title: 'Willkommen!', text: 'Dein Ziel: Finde Goldfelder ohne eine Mine zu treffen. Jedes Gold erhöht deinen Multiplikator — mehr Risiko, mehr Gewinn.' },
+  { icon: '💣', title: 'Das Spielfeld', text: '25 Felder: Gold 🪙, Minen 💣 und leere Felder ○. Leere Felder zeigen die Anzahl der benachbarten Gefahr-Felder (Minen + Gold) an.' },
+  { icon: '💰', title: 'Multiplikator & Cash Out', text: 'Jedes Goldfeld steigert deinen Multiplikator. Cash-oute jederzeit — oder riskiere weiterzuspielen. Triffst du eine Mine, verlierst du den Einsatz.' },
+  { icon: '⚡', title: 'Risiko & Belohnung', text: 'Mit dem Minen-Schieberegler steuerst du das Risiko. Mehr Minen = höherer Multiplikator-Sprung pro Gold, aber auch mehr Gefahr.' },
+  { icon: '🛡️', title: 'Upgrades & Events', text: 'Kaufe Upgrades (z. B. Joker: übersteht eine Mine) und Event-Karten mit Goldnuggets. Je höher dein Level, desto teurer werden sie.' },
+  { icon: '🍀', title: 'Los geht\'s!', text: 'Du startest mit €1.000 und 5 Goldnuggets. Baue deinen Kontostand aus und erklimme die Rangliste. Viel Glück!' },
+];
 
 // ── Event Cards  (kosten Nuggets, nicht €) ────────────────────────────────────
 const ALL_EVENTS = [
@@ -193,6 +204,7 @@ let roundLog      = [];
 let streak        = 0;
 let jokerUsed     = false;
 let roundGoldCount = N_GOLD;
+let tutCurrent     = 0;
 
 let boughtUpgrades     = new Set();
 let boughtUpgradeCosts = {};       // gespeicherter Einkaufspreis für korrekte Rückerstattung
@@ -484,7 +496,7 @@ function autoRevealCell(i) {
   if (board[i] === 'gold') {
     el(`fb${i}`).className = 'face face-back is-gold';
     el(`fi${i}`).textContent = '🪙';
-    multiplier += calcMultStep(nMines) * (boughtEvents.has('double_gold') ? 2 : 1);
+    multiplier += calcMultStepProgressive(nMines) * (boughtEvents.has('double_gold') ? 2 : 1);
     roundNuggets++;
     stats.nuggetsFound++;
     renderPending();
@@ -522,7 +534,7 @@ function clickCell(i) {
     setTimeout(() => { revealAll(); endRound('loss', 0); }, 480);
 
   } else if (board[i] === 'gold') {
-    const step = calcMultStep(nMines) * (boughtEvents.has('double_gold') ? 2 : 1);
+    const step = calcMultStepProgressive(nMines) * (boughtEvents.has('double_gold') ? 2 : 1);
     multiplier += step;
     roundNuggets++;
     stats.nuggetsFound++;
@@ -553,7 +565,7 @@ function clickCell(i) {
 
 function cashOut() {
   if (!active) return;
-  const streakBonus = Math.min(streak, 3) * 0.05;
+  const streakBonus = roundNuggets > 0 ? Math.min(streak, 3) * 0.05 : 0;
   let finalMult = multiplier * (1 + streakBonus);
   if (boughtEvents.has('blind_luck')) finalMult *= 1.3;
 
@@ -696,11 +708,48 @@ function renderMultiplier(bump = false) {
 
 function renderWin() {
   const e = el('winEl');
+  renderNextGoldHint();
   if (!active) { e.textContent = '—'; return; }
-  const streakBonus = Math.min(streak, 3) * 0.05;
+  const streakBonus = roundNuggets > 0 ? Math.min(streak, 3) * 0.05 : 0;
   let finalMult = multiplier * (1 + streakBonus);
   if (boughtEvents.has('blind_luck')) finalMult *= 1.3;
   e.textContent = '€ ' + fmt(bet * finalMult);
+}
+
+function renderNextGoldHint() {
+  const e = el('nextGoldHint');
+  if (!e) return;
+  const goldLeft = board.filter((t, j) => !revealed[j] && t === 'gold').length;
+  if (!active || goldLeft === 0 || roundNuggets === 0) { e.style.display = 'none'; return; }
+  const nextStep = calcMultStepProgressive(nMines) * (boughtEvents.has('double_gold') ? 2 : 1);
+  const streakBonus = Math.min(streak, 3) * 0.05;
+  let extraMult = nextStep * (1 + streakBonus);
+  if (boughtEvents.has('blind_luck')) extraMult *= 1.3;
+  const extra = Math.floor(bet * extraMult);
+  e.textContent = '→ Nächstes Gold bringt +€' + fmt(extra) + ' mehr';
+  e.style.display = 'block';
+}
+
+function showTutorial() {
+  tutCurrent = 0;
+  renderTutStep();
+  el('tutorialOverlay').style.display = 'flex';
+}
+
+function closeTutorial() {
+  el('tutorialOverlay').style.display = 'none';
+  localStorage.setItem(TUTORIAL_KEY, '1');
+}
+
+function renderTutStep() {
+  const s = TUTORIAL_STEPS[tutCurrent];
+  el('tutIcon').textContent  = s.icon;
+  el('tutTitle').textContent = s.title;
+  el('tutText').textContent  = s.text;
+  el('tutNext').textContent  = tutCurrent === TUTORIAL_STEPS.length - 1 ? '🍀 Spielen!' : 'Weiter →';
+  el('tutStepDots').innerHTML = TUTORIAL_STEPS.map(function(_, i) {
+    return '<span class="tut-dot' + (i === tutCurrent ? ' active' : '') + '"></span>';
+  }).join('');
 }
 
 function updateInfoBar() {
@@ -1391,3 +1440,11 @@ renderInventory();
 switchTab(isMobile() ? 'game' : 'market');
 initMarket();
 renderTimer();
+
+el('tutNext').addEventListener('click', function() {
+  if (tutCurrent < TUTORIAL_STEPS.length - 1) { tutCurrent++; renderTutStep(); }
+  else closeTutorial();
+});
+el('tutSkip').addEventListener('click', closeTutorial);
+el('btnTutorial').addEventListener('click', showTutorial);
+if (!localStorage.getItem(TUTORIAL_KEY)) showTutorial();
