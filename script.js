@@ -1203,7 +1203,10 @@ async function signUp() {
   setAuthMsg('Wird erstellt…');
   const { error } = await sbClient.auth.signUp({ email, password, options: { data: { username } } });
   if (error) { setAuthMsg(error.message, true); return; }
-  setAuthMsg('✓ Bitte bestätige deine E-Mail, dann anmelden.');
+  // Direkt einloggen nach Registrierung
+  const { error: loginErr } = await sbClient.auth.signInWithPassword({ email, password });
+  if (!loginErr) { closeAuthModal(); return; }
+  setAuthMsg('✓ Account erstellt! Jetzt anmelden.');
 }
 
 async function signIn() {
@@ -1365,6 +1368,14 @@ sbClient.auth.onAuthStateChange(function(_event, session) {
 sbClient.auth.getSession().then(function(r) {
   applyUserState(r.data.session ? r.data.session.user : null);
 });
+
+// Echtzeit-Rangliste: bei jeder Änderung an profiles neu laden wenn Tab offen
+sbClient
+  .channel('leaderboard-live')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, function() {
+    if (activeTab === 'leaderboard') renderLeaderboard();
+  })
+  .subscribe();
 
 checkMilestoneRewards(true);   // Startzustand markieren, keine Belohnung
 renderBalance();
