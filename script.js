@@ -104,10 +104,11 @@ function renderMilestone() {
 
   if (nameEl) nameEl.textContent = level >= 0 ? MILESTONES[level].name : 'Anfänger';
 
-  const center = Math.max(1, Math.min(MILESTONES.length - 2, nextIdx));
-  const start  = Math.max(0, center - 2);
-  const end    = Math.min(MILESTONES.length - 1, start + 4);
-  const slice  = MILESTONES.slice(start, end + 1);
+  const focusIdx = Math.max(0, level);
+  const center   = Math.max(2, Math.min(MILESTONES.length - 3, focusIdx));
+  const start    = center - 2;
+  const end      = center + 2;
+  const slice    = MILESTONES.slice(start, end + 1);
 
   pathEl.innerHTML = slice.map(function(ms, i) {
     const mIdx   = start + i;
@@ -740,6 +741,33 @@ function showTutorial() {
 function closeTutorial() {
   el('tutorialOverlay').style.display = 'none';
   localStorage.setItem(TUTORIAL_KEY, '1');
+}
+
+function showMilestoneModal() {
+  let level = -1;
+  for (let i = 0; i < MILESTONES.length; i++) {
+    if (balance >= MILESTONES[i].amount) level = i;
+  }
+  const nextIdx = level + 1;
+  el('msModalList').innerHTML = MILESTONES.map(function(ms, i) {
+    const done   = balance >= ms.amount;
+    const isCurr = i === level;
+    const isNext = i === nextIdx;
+    const reward = ms.nuggets > 0 ? ' · +' + ms.nuggets + ' 🪙' : '';
+    var cls = 'ms-row' + (done ? ' done' : isNext ? ' next' : '');
+    if (isCurr) cls += ' curr';
+    var icon = done ? '✅' : isCurr ? '📍' : isNext ? '⭐' : '⬜';
+    return '<div class="' + cls + '">'
+      + '<span class="ms-row-icon">' + icon + '</span>'
+      + '<span class="ms-row-name">' + ms.name + '</span>'
+      + '<span class="ms-row-amt">€' + fmt(ms.amount) + reward + '</span>'
+      + '</div>';
+  }).join('');
+  el('msModal').style.display = 'flex';
+}
+
+function closeMilestoneModal() {
+  el('msModal').style.display = 'none';
 }
 
 function renderTutStep() {

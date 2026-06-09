@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Gold Minesweeper</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -68,7 +68,7 @@
     </div>
 
     <!-- Einsatz -->
-    <div class="card">
+    <div class="card" id="betCard">
       <span class="card-label">
         Einsatz
         <button class="help-btn" data-tip="Der Betrag den du pro Runde riskierst. Bei einer Mine verlierst du ihn. Bei Cash Out bekommst du: Einsatz × Multiplikator.">?</button>
@@ -114,6 +114,7 @@
       <div class="ms-header">
         <span class="card-label">Fortschritts-Pfad</span>
         <span class="ms-level-name" id="msLevelName">Einsteiger</span>
+        <span class="ms-all-btn" onclick="showMilestoneModal()">Alle →</span>
       </div>
       <div class="ms-path" id="msPath"></div>
       <div class="ms-info" id="msInfo"></div>
@@ -358,6 +359,16 @@
       <button class="btn-auth-submit" onclick="signUp()">Account erstellen</button>
     </div>
     <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
+
+<!-- Milestone Overview Modal -->
+<div id="msModal" class="ms-modal-overlay" style="display:none"
+     onclick="if(event.target===this)closeMilestoneModal()">
+  <div class="ms-modal">
+    <div class="ms-modal-title">📍 Alle Meilensteine</div>
+    <div id="msModalList"></div>
+    <button class="btn-ms-close" onclick="closeMilestoneModal()">Schließen</button>
   </div>
 </div>
 
