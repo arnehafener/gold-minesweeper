@@ -251,6 +251,7 @@ function getPriceMultiplier() {
   return 1 + Math.floor(Math.max(0, level) / 3);
 }
 function getScaledCost(base) { return base * getPriceMultiplier(); }
+function getJokerCost() { return Math.max(18, Math.floor(balance / 150)); }
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -320,7 +321,7 @@ function toggleUpgrade(id) {
     return;
   }
 
-  const cost = getScaledCost(upg.cost);
+  const cost = id === 'joker' ? getJokerCost() : getScaledCost(upg.cost);
 
   if (boughtUpgrades.has(id)) {
     boughtUpgrades.delete(id);
@@ -355,7 +356,7 @@ function renderUpgrades() {
     const bought     = boughtUpgrades.has(u.id);
     const cd         = upgradeCooldowns[u.id] || 0;
     const onCooldown = cd > 0 && !bought;
-    const cost       = u.cost * mult;
+    const cost       = u.id === 'joker' ? getJokerCost() : u.cost * mult;
     const canAfford  = goldInventory >= cost;
     var cls = '';
     if (bought)       cls = 'active';
