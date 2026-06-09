@@ -243,16 +243,11 @@ const el  = id => document.getElementById(id);
 const fmt = n  => Math.round(n).toLocaleString('de-DE');
 
 // Preis-Multiplikator basierend auf aktuellem Milestone-Level
-// Level 0-2 (€1K–€5K): ×1 | 3-5 (€10K–€50K): ×2 | 6-8 (€100K–€500K): ×3 | 9+ (€1M+): ×4 ...
+// ×1 bei €1K | ×2 bei €10K | ×3 bei €100K | ×4 bei €1M | ×5 bei €10M ...
 function getPriceMultiplier() {
-  let level = -1;
-  for (let i = 0; i < MILESTONES.length; i++) {
-    if (balance >= MILESTONES[i].amount) level = i;
-  }
-  return 1 + Math.floor(Math.max(0, level) / 3);
+  return 1 + Math.floor(Math.log10(Math.max(1000, balance)) - 3);
 }
 function getScaledCost(base) { return base * getPriceMultiplier(); }
-function getJokerCost() { return Math.max(18, Math.floor(balance / 150)); }
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -322,7 +317,7 @@ function toggleUpgrade(id) {
     return;
   }
 
-  const cost = id === 'joker' ? getJokerCost() : getScaledCost(upg.cost);
+  const cost = getScaledCost(upg.cost);
 
   if (boughtUpgrades.has(id)) {
     boughtUpgrades.delete(id);
@@ -357,7 +352,7 @@ function renderUpgrades() {
     const bought     = boughtUpgrades.has(u.id);
     const cd         = upgradeCooldowns[u.id] || 0;
     const onCooldown = cd > 0 && !bought;
-    const cost       = u.id === 'joker' ? getJokerCost() : u.cost * mult;
+    const cost       = u.cost * mult;
     const canAfford  = goldInventory >= cost;
     var cls = '';
     if (bought)       cls = 'active';
